@@ -1,0 +1,8 @@
+venv/
+.idea/
+pycache
+env/
+*.log
+*.exe
+*.mp4
+*.mp3
