@@ -1,3 +1,8 @@
+"""
+ Программа для скачивания данных открытого интереса фьючерсов Московской биржи
+ со страницы ежедневных данных. История подгружается путем изменения даты.
+ Доступ только пользователям личного кабинета.
+"""
 import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -5,16 +10,20 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 import pandas as pd
+from datetime import datetime, timedelta
+import pickle
+
 
 
 COLUMN = [1, 2, 3, 4, 5]
 ROW = [1, 2, 3]
 URL = 'https://www.moex.com/ru/contract.aspx?code='
 futures_1 = ['SBRF-9.24', 'GAZR-9.24', 'LKOH-9.24', 'SNGP-9.24', 'TCSI-9.24',
-            'CNY-9.24', 'Si-9.24', 'CNYRUBF', 'GOLD-9.24', 'MIX-9.24', 'USDRUBF'
+            'CNY-9.24', 'Si-9.24', 'CNYRUBF', 'GOLD-9.24', 'MIX-9.24', 'USDRUBF',
            'SILV-9.24', 'ED-9.24', 'SPYF-9.24']
-futures = ['SBRF-9.24', 'GAZR-9.24', 'LKOH-9.24']
+futures = ['LKOH-9.24', 'GAZR-9.24', 'TCSI-9.24']
 DIR_NAME = os.getcwd()
+NEED_OPTIONS = ['Открытые позиции', 'Изменение', 'Количество лиц']
 
 
 def split_dict(dic, nom):
@@ -54,33 +63,37 @@ def change_keys(chunks) -> list:
 def get_oi(list_tag) -> list:
     """Получение данных по открытому интересу"""
     list_oi = []
-    for num, tag in enumerate(list_tag):
-        if tag.text == 'Открытые позиции': # list_tag[78]
-            oi_long_p = list_tag[num + 1].text.replace(',', '')
-            oi_short_p = list_tag[num + 2].text.replace(',', '')
-            oi_long_c = list_tag[num + 3].text.replace(',', '')
-            oi_short_c = list_tag[num + 4].text.replace(',', '')
-            oi_summ = list_tag[num + 5].text.replace(',', '')
-        elif tag.text == 'Изменение': # list_tag[78]
-            ch_long_p = list_tag[num + 1].text.replace(',', '')
-            ch_short_p = list_tag[num + 2].text.replace(',', '')
-            ch_long_c = list_tag[num + 3].text.replace(',', '')
-            ch_short_c = list_tag[num + 4].text.replace(',', '')
-            ch_summ = list_tag[num + 5].text.replace(',', '')
-        elif tag.text == 'Количество лиц':
-            qty_long_p = list_tag[num + 1].text.replace(',', '')
-            qty_short_p = list_tag[num + 2].text.replace(',', '')
-            qty_long_c = list_tag[num + 3].text.replace(',', '')
-            qty_short_c = list_tag[num + 4].text.replace(',', '')
-            qty_summ = list_tag[num + 5].text.replace(',', '')
+    list_ch = []
+    list_qn = []
+    list_dics = []
+    name_keys = ['1_Long', '1_Short', '2_Long', '2_Short', 'Summa']
+    if type(list_tag) == list:
+        if len(list_tag) > 1:
+            print('Чтение открытого интереса началось...')
+    else:
+        print("Не удалость получить ")
 
-    OI = {'1_Long': int(oi_long_p), '1_Short': int(oi_short_p), '2_Long': int(oi_long_c),'2_Short': int(oi_short_c),'Summa': int(oi_summ)}
-    Change = {'1_Long': int(ch_long_p),'1_Short': int(ch_short_p),'2_Long': int(ch_long_c),'2_Short': int(ch_short_c),'Summa': int(ch_summ)}
-    Quantity = {'1_Long': int(qty_long_p),'1_Short': int(qty_short_p),'2_Long': int(qty_long_c),'2_Short': int(qty_short_c),'Summa': int(qty_summ)}
-    list_oi.append(OI)
-    list_oi.append(Change)
-    list_oi.append(Quantity)
-    return list_oi
+    for nomer, tag in enumerate(list_tag):
+        if nomer > 1:
+            list_items = tag.find_elements(By.TAG_NAME, 'td')
+            for num, item in enumerate(list_items):
+                if list_items[0].text == 'Открытые позиции':
+                    if num > 0:
+                        list_oi.append(int(item.text.replace(',', '')))
+                elif list_items[0].text == 'Изменение':
+                    if num > 0:
+                        list_ch.append(int(item.text.replace(',', '')))
+                elif list_items[0].text == 'Количество лиц':
+                    if num > 0:
+                        list_qn.append(int(item.text.replace(',', '')))
+
+    oi = dict(zip(name_keys, list_oi))
+    change = dict(zip(name_keys, list_ch))
+    quant = dict(zip(name_keys, list_qn))
+    list_dics.append(oi)
+    list_dics.append(change)
+    list_dics.append(quant)
+    return list_dics
 
 
 def connect(instrument):
@@ -90,31 +103,37 @@ def connect(instrument):
     url_tiker = URL + instrument
     options = Options()
     options.add_argument('--headless')
-    driver = webdriver.Firefox(options=options)
+    options.add_argument('--disable-gpu')
+    driver = webdriver.Firefox()
     driver.get(url_tiker)
     if driver is None:
         print(f" Нет ответа от сервера {url_tiker}")
         exit()
     driver.maximize_window()
-    WebDriverWait(driver, 5)
+    WebDriverWait(driver, 10)
     list_cookies = driver.get_cookies()
     for cookies in list_cookies:
         driver.add_cookie(cookies)
     button = driver.find_element(By.LINK_TEXT, "Согласен")
-    WebDriverWait(driver, 5)
+    WebDriverWait(driver, 10)
     if button is not None:
         button.send_keys(Keys.ENTER)
+    else:
+        print('Кнопка не найдена!')
 
     WebDriverWait(driver, 10)
-    data = driver.find_element(By.TAG_NAME, "td")
-    if data.text != '':
-        data_need = data.text.split()[0]
-        data_file = data_need[-4:] + '_' + data_need[3:5] + '_' + data_need[0:2]
+    data = driver.find_element(By.ID, 'digest_refresh_time').text
+    if data != '':
+        data_need = data.split()[0]
+        data_file = data_need[-4:] + data_need[3:5] + data_need[0:2]
+        time_file = data.split()[1]
     else:
-        data_need = driver.find_element(By.ID, "digest_refresh_time").text.split()[0]
-        data_file = data_need[-4:] + '_' + data_need[3:5] + '_' + data_need[0:2]
-    contracts = driver.find_element(By.CLASS_NAME, 'ui-row')
-    list_web = contracts.find_elements(By.CLASS_NAME, 'ui-table-cell')
+        data_need = datetime.today().date() - timedelta(days=1)
+        data_file = data_need.strftime('%Y%m%d')
+        time_file = datetime.today().time().strftime('%H:%M:%S')
+    old_date = driver.find_element(By.ID, "optDate")
+    #contracts = driver.find_element(By.CLASS_NAME, 'ui-row')
+    list_web = driver.find_elements(By.CLASS_NAME, 'ui-table-cell')
     print(url_tiker)
 
     new_dic = {}
@@ -131,21 +150,26 @@ def connect(instrument):
         chunk.append(item)
 
     chunks = change_keys(chunk)
-    file_name_1 = DIR_NAME + '\\' + instrument + '_' + data_file + '_sum.csv'
-    save_file(chunks, file_name_1)
-
-    list_tag = driver.find_elements(By.TAG_NAME, "td")
-    list_oi = get_oi(list_tag)
-    file_name_2 = DIR_NAME + '\\' + instrument + '_' + data_file + '_oi.csv'
-    save_file(list_oi, file_name_2)
+    #list_tag = driver.find_elements(By.TAG_NAME, "td")
+    #elements = driver.find_element(By.CLASS_NAME, 'ui-table__container').find_elements(By.CLASS_NAME, 'ui-table-row')
+    elements_web = driver.find_element(By.CLASS_NAME, 'ContractTablesOptions_overflow_3zzJO').find_elements(By.TAG_NAME, 'tr')
+    list_oi = get_oi(elements_web)
+    file_name = DIR_NAME + '\\' + instrument + '_' + data_file
+    save_file(list_oi, file_name + '_oi.csv', time_file)
+    save_file(chunks, file_name + '_sum.csv', time_file)
 
     driver.close()
     driver.quit()
 
-def save_file(list_data, name_file):
-    df = pd.DataFrame(list_data)
-    df.to_csv(name_file, index=False)
-    print(df)
+def save_file(list_data, name_file, time_file):
+    with open(name_file, 'wr', encoding='utf-8') as f:
+        f.write(name_file.split('_')[1] + '-' + time_file)
+        f.write('\n')
+        pickle.dump(list_data, f)
+
+    # df = pd.DataFrame(list_data, f)
+    # df.to_csv(name_file, index=False)
+    # print(df)
 
 
 if __name__ == '__main__':
