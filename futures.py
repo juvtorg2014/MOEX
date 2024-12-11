@@ -3,14 +3,13 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from config import username, password
-import datetime
+from contracts import contracts, futures, long_futures
+from time import sleep
+from datetime import datetime, timedelta
 
 MAIN_CONTRACT = 'Z4'
 CONTRACTS = ['MX', 'SI']
-new = ['AF', 'AK', 'AL', 'AS', 'BN', 'BS', 'CH', 'CM', 'FE', 'FL', 'FS', 'GK', 'GZ', 'HY', 'IR', 'IS',
-       'KM', 'LE', 'LK', 'MC', 'ME', 'MG', 'MN', 'MT', 'MV', 'NK', 'NM', 'PH', 'PI', 'PS', 'PZ', 'RA',
-       'RL', 'RN', 'RT', 'RU', 'SO', 'SC', 'SE', 'SG', 'SH', 'SO', 'SP', 'SR', 'SS', 'SZ', 'TI', 'TN',
-       'TP', 'TT', 'VB', 'VK', 'WU', 'YD']
+MAIN_HTML = 'https://www.moex.com/ru/contract.aspx?code='
 
 
 def get_md5(s):
@@ -28,6 +27,7 @@ def write_csv(date, contract, op, cp, qt):
         fo.write('\n')
         fo.writelines(qt)
         print(f'Все записано за контракт {contract} и число {date}!!!')
+
 
 
 def get_data_contract(driver):
@@ -57,14 +57,14 @@ def get_data_contract(driver):
     return open_pos, change_pos, quantity
 
 
-def get_selenium_page(html, contract):
+def get_selenium_page(html):
     """Основной модуль получения данных"""
-    check_page = html + 'ru/contract.aspx?code=' + contract
+
     options = Options()
-    #options.add_argument('--headless')
+    options.add_argument('--headless')
 
     driver = webdriver.Firefox(options=options)
-    driver.get(check_page)
+    driver.get(html)
 
     if driver.title == 'Основные параметры срочного контракта — Московская Биржа | Рынки':
         driver.implicitly_wait(3)
@@ -102,30 +102,43 @@ def get_selenium_page(html, contract):
             driver.find_elements(By.CLASS_NAME, 'form-group')[2].click()
         else:
             print('Не был выполнен вход по паролю')
+        sleep(3)
+        try:
+            today = driver.find_element(By.ID, 'digest_refresh_time').text.split(' ')[0]
+            today = datetime.strptime(today.replace('.', ''), '%d%m%Y').date() - timedelta(days=1)
+            time_page = check_weekday(today)
+        except:
+            today = datetime.today().date()-timedelta(days=1)
+            time_page = check_weekday(today)
 
-        open_, change, qt = get_data_contract(driver)
+        for item in contracts:
+            try:
+                contract = item + MAIN_CONTRACT
+                driver.get(MAIN_HTML + contract)
+                print(driver.current_url)
+                open_, change, qt = get_data_contract(driver)
+                write_csv(time_page, contract, open_, change, qt)
+                sleep(1)
+            except:
+                continue
 
-        time_page = driver.find_element(By.ID, 'digest_refresh_time').text.split(' ')[0]
-        #time_page = time_page[6:] + time_page[3:5] + time_page[:2]
-        year = driver.find_element(By.CLASS_NAME, 'ui-datepicker-current-day').get_attribute('data-year')
-        day = driver.find_element(By.CLASS_NAME, 'ui-datepicker-current-day').text
-        if len(day) == 1:
-            day = '0' + day
-        month = int(driver.find_element(By.CLASS_NAME, 'ui-datepicker-current-day').get_attribute('data-month')) + int(1)
-        time_page = year + str(month) + day
-        if time_page == '' or len(time_page) != 8:
-            print('Дата ставится сегодняшняя минус день')
-            time_page = (datetime.date.today()-datetime.timedelta(days=1)).isoformat()
-            time_page = time_page.replace('-','')
-        write_csv(time_page, contract, open_, change, qt)
     driver.quit()
+    print("Браузер закрыт!")
+
+def check_weekday(today):
+    """Проверка субботы и воскресенья"""
+    if today.weekday() == 5:
+        return datetime.strftime(today - timedelta(days=1), '%Y%m%d')
+    elif today.weekday() == 6:
+        return datetime.strftime(today - timedelta(days=1), '%Y%m%d')
+    else:
+        return datetime.strftime(today, '%Y%m%d')
 
 
 def main():
-    url = 'https://www.moex.com/'
-    for contract in CONTRACTS:
-        main_contract = contract + MAIN_CONTRACT
-        get_selenium_page(url, main_contract)
+    start_time = datetime.now()
+    get_selenium_page(MAIN_HTML + CONTRACTS[0] + MAIN_CONTRACT)
+    print("--- %s времени прошло ---" % (datetime.now() - start_time))
 
 
 if __name__ == '__main__':
