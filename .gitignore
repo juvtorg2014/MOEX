@@ -6,3 +6,7 @@ env/
 *.exe
 *.mp4
 *.mp3
+*.csv
+*.log
+config.py
+Data/
