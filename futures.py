@@ -3,7 +3,6 @@
  со страницы ежедневных данных. Доступ только пользователям личного кабинета.
  В файле <config.py> должны находиться <username=*******> и <password=*******>
 """
-import hashlib
 import os
 import json
 from selenium import webdriver
@@ -13,9 +12,9 @@ from config import username, password
 from time import sleep
 from datetime import datetime, timedelta
 
-MAIN_CONTRACT = 'Z4'
-CONTRACTS = 'MX'
+MAIN_CONTRACT = ''
 MAIN_HTML = 'https://www.moex.com/ru/contract.aspx?code='
+TRIPLE_D = [{'Z4': '20-12-2024'}, {'H5': '21-03-2025'}, {'M5': '20-06-2025'}, {'U5': '19-09-2025'}, {'Z5': '19-12-2025'}]
 
 contracts = ['AF', 'AK', 'AL', 'AS', 'BN', 'BS', 'CH', 'CM', 'FE', 'FL', 'FS', 'GK', 'GZ', 'HY', 'IR', 'IS',
              'KM', 'LE', 'LK', 'MC', 'ME', 'MG', 'MN', 'MT', 'MV', 'NK', 'NM', 'PH', 'PI', 'PS', 'PZ', 'RA',
@@ -30,11 +29,9 @@ long_futures = ['CNYRUBF', 'EURRUBF', 'GLDRUBF', 'IMOEXF', 'USDRUBF']
 
 CURRENT_DIR = os.getcwd() + '\\'
 
-def get_md5(s):
-    return hashlib.md5(bytes(s, encoding='utf-8')).hexdigest()
-
 
 def write_csv(path_dir, contract, op, cp, qt):
+    """Запись в файл данных одного контракта"""
     date = path_dir.split('\\')[-2]
     name_file = contract + '_' + date + '_OI.csv'
     with open(path_dir + name_file, 'w', encoding='utf-8') as fo:
@@ -128,7 +125,8 @@ def get_selenium_page(html):
             today = driver.find_element(By.ID, 'digest_refresh_time').text.split(' ')[0]
             today = datetime.strptime(today.replace('.', ''), '%d%m%Y').date() - timedelta(days=1)
             time_page = check_weekday(today)
-        except:
+        except Exception as e:
+            print(e)
             today = datetime.today().date()-timedelta(days=1)
             time_page = check_weekday(today)
 
@@ -147,7 +145,9 @@ def get_selenium_page(html):
                         driver.add_cookie(cookie)
                 driver.refresh()
                 print(driver.current_url)
+                sleep(1)
                 open_, change, qt = get_data_contract(driver)
+                sleep(1)
                 write_csv(new_dir, contract, open_, change, qt)
                 sleep(1)
             except Exception as e:
@@ -157,6 +157,16 @@ def get_selenium_page(html):
     driver.quit()
     os.remove(CURRENT_DIR + 'cookies.json')
     print("Браузер закрыт!")
+
+
+def get_main_contract():
+    """Получения близжайшего суффикса фьючерса"""
+    today = datetime.now().date()
+    for item in TRIPLE_D:
+        for key, value in item.items():
+            day = datetime.strptime((value), '%d-%m-%Y').date()
+            if today < day:
+                return key
 
 
 def check_weekday(today):
@@ -170,6 +180,7 @@ def check_weekday(today):
 
 
 if __name__ == '__main__':
+    MAIN_CONTRACT = get_main_contract()
     start_time = datetime.now()
-    get_selenium_page(MAIN_HTML + CONTRACTS + MAIN_CONTRACT)
+    get_selenium_page(MAIN_HTML + contracts[0] + MAIN_CONTRACT)
     print("--- %s времени прошло ---" % (datetime.now() - start_time))
