@@ -3,6 +3,7 @@
  со страницы ежедневных данных. Доступ только пользователям личного кабинета.
  В файле <config.py> должны находиться <username=*******> и <password=*******>
 """
+
 import os
 import json
 from selenium import webdriver
