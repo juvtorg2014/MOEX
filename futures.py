@@ -1,4 +1,11 @@
+"""
+ Программа для скачивания данных открытого интереса фьючерсов Московской биржи
+ со страницы ежедневных данных. Доступ только пользователям личного кабинета.
+ В файле <config.py> должны находиться <username=*******> и <password=*******>
+"""
 import hashlib
+import os
+import json
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
@@ -21,14 +28,16 @@ futures = ['AE', 'BB', 'BD', 'BR', 'CC', 'CF', 'CR', 'DJ', 'DX', 'ED', 'EU', 'FN
 
 long_futures = ['CNYRUBF', 'EURRUBF', 'GLDRUBF', 'IMOEXF', 'USDRUBF']
 
+CURRENT_DIR = os.getcwd() + '\\'
 
 def get_md5(s):
     return hashlib.md5(bytes(s, encoding='utf-8')).hexdigest()
 
 
-def write_csv(date, contract, op, cp, qt):
+def write_csv(path_dir, contract, op, cp, qt):
+    date = path_dir.split('\\')[-2]
     name_file = contract + '_' + date + '_OI.csv'
-    with open(name_file, 'w', encoding='utf-8') as fo:
+    with open(path_dir + name_file, 'w', encoding='utf-8') as fo:
         fo.writelines("LP    SP    LC    SC    SUMMA")
         fo.write('\n')
         fo.writelines(op)
@@ -111,6 +120,9 @@ def get_selenium_page(html):
             driver.find_elements(By.CLASS_NAME, 'form-group')[2].click()
         else:
             print('Не был выполнен вход по паролю')
+        cookies = driver.get_cookies()
+        with open(CURRENT_DIR + 'cookies.json', 'w') as file:
+            json.dump(cookies, file)
         sleep(3)
         try:
             today = driver.find_element(By.ID, 'digest_refresh_time').text.split(' ')[0]
@@ -120,19 +132,30 @@ def get_selenium_page(html):
             today = datetime.today().date()-timedelta(days=1)
             time_page = check_weekday(today)
 
+        new_dir = CURRENT_DIR + time_page + '\\'
+        if not os.path.exists(new_dir):
+            os.mkdir(new_dir)
+            print('Создана папка: ' + new_dir)
+
         for item in contracts:
             try:
                 contract = item + MAIN_CONTRACT
                 driver.get(MAIN_HTML + contract)
+                with open(CURRENT_DIR + 'cookies.json', 'r') as file:
+                    cookies = json.load(file)
+                    for cookie in cookies:
+                        driver.add_cookie(cookie)
+                driver.refresh()
                 print(driver.current_url)
                 open_, change, qt = get_data_contract(driver)
-                write_csv(time_page, contract, open_, change, qt)
+                write_csv(new_dir, contract, open_, change, qt)
                 sleep(1)
             except Exception as e:
                 print(e)
                 continue
 
     driver.quit()
+    os.remove(CURRENT_DIR + 'cookies.json')
     print("Браузер закрыт!")
 
 
@@ -146,11 +169,7 @@ def check_weekday(today):
         return datetime.strftime(today, '%Y%m%d')
 
 
-def main():
+if __name__ == '__main__':
     start_time = datetime.now()
     get_selenium_page(MAIN_HTML + CONTRACTS + MAIN_CONTRACT)
     print("--- %s времени прошло ---" % (datetime.now() - start_time))
-
-
-if __name__ == '__main__':
-    main()

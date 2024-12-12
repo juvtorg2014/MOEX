@@ -8,5 +8,8 @@ env/
 *.mp3
 *.csv
 *.log
+*.json
 config.py
+oi_history.py
 Data/
+20241211/
