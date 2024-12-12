@@ -3,13 +3,23 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from config import username, password
-from contracts import contracts, futures, long_futures
 from time import sleep
 from datetime import datetime, timedelta
 
 MAIN_CONTRACT = 'Z4'
-CONTRACTS = ['MX', 'SI']
+CONTRACTS = 'MX'
 MAIN_HTML = 'https://www.moex.com/ru/contract.aspx?code='
+
+contracts = ['AF', 'AK', 'AL', 'AS', 'BN', 'BS', 'CH', 'CM', 'FE', 'FL', 'FS', 'GK', 'GZ', 'HY', 'IR', 'IS',
+             'KM', 'LE', 'LK', 'MC', 'ME', 'MG', 'MN', 'MT', 'MV', 'NK', 'NM', 'PH', 'PI', 'PS', 'PZ', 'RA',
+             'RL', 'RN', 'RT', 'RU', 'SO', 'SC', 'SE', 'SG', 'SH', 'SO', 'SP', 'SR', 'SS', 'SZ', 'TI', 'TN',
+             'TP', 'TT', 'VB', 'VK', 'WU', 'YD']
+
+futures = ['AE', 'BB', 'BD', 'BR', 'CC', 'CF', 'CR', 'DJ', 'DX', 'ED', 'EU', 'FN', 'GD', 'GL', 'HS', 'IP',
+           'JP', 'MA', 'MM', 'MX', 'NA', 'NG', 'OG', 'PD', 'PT', 'R2', 'RB', 'RI', 'RM', 'SF', 'SV', 'SX',
+           'SI', 'SU', 'TY', 'UC', 'W4']
+
+long_futures = ['CNYRUBF', 'EURRUBF', 'GLDRUBF', 'IMOEXF', 'USDRUBF']
 
 
 def get_md5(s):
@@ -27,7 +37,6 @@ def write_csv(date, contract, op, cp, qt):
         fo.write('\n')
         fo.writelines(qt)
         print(f'Все записано за контракт {contract} и число {date}!!!')
-
 
 
 def get_data_contract(driver):
@@ -119,11 +128,13 @@ def get_selenium_page(html):
                 open_, change, qt = get_data_contract(driver)
                 write_csv(time_page, contract, open_, change, qt)
                 sleep(1)
-            except:
+            except Exception as e:
+                print(e)
                 continue
 
     driver.quit()
     print("Браузер закрыт!")
+
 
 def check_weekday(today):
     """Проверка субботы и воскресенья"""
@@ -137,7 +148,7 @@ def check_weekday(today):
 
 def main():
     start_time = datetime.now()
-    get_selenium_page(MAIN_HTML + CONTRACTS[0] + MAIN_CONTRACT)
+    get_selenium_page(MAIN_HTML + CONTRACTS + MAIN_CONTRACT)
     print("--- %s времени прошло ---" % (datetime.now() - start_time))
 
 
