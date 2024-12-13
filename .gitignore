@@ -9,7 +9,6 @@ env/
 *.csv
 *.log
 *.json
+config.pyc
 config.py
-oi_history.py
 Data/
-20241211/

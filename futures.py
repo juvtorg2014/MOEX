@@ -28,12 +28,14 @@ futures = ['AE', 'BB', 'BD', 'BR', 'CC', 'CF', 'CR', 'DJ', 'DX', 'ED', 'EU', 'FN
 
 long_futures = ['CNYRUBF', 'EURRUBF', 'GLDRUBF', 'IMOEXF', 'USDRUBF']
 
-CURRENT_DIR = os.getcwd() + '\\'
+ALL_CONTRACTS = contracts + futures + long_futures
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__)) + '\\'
 
 
 def write_csv(path_dir, contract, op, cp, qt):
     """Запись в файл данных одного контракта"""
-    date = path_dir.split('\\')[-2]
+    date = path_dir.split('\\')[-3]
     name_file = contract + '_' + date + '_OI.csv'
     with open(path_dir + name_file, 'w', encoding='utf-8') as fo:
         fo.writelines("LP    SP    LC    SC    SUMMA")
@@ -126,19 +128,35 @@ def get_selenium_page(html):
             today = driver.find_element(By.ID, 'digest_refresh_time').text.split(' ')[0]
             today = datetime.strptime(today.replace('.', ''), '%d%m%Y').date() - timedelta(days=1)
             time_page = check_weekday(today)
-        except Exception as e:
-            print(e)
+        except Exception:
+            print("Не удалось получить дату со страницы !!!")
             today = datetime.today().date()-timedelta(days=1)
             time_page = check_weekday(today)
 
         new_dir = CURRENT_DIR + time_page + '\\'
+        new_dir_stocks = new_dir + 'stocks' + '\\'
+        new_dir_futures = new_dir + 'futures' + '\\'
         if not os.path.exists(new_dir):
             os.mkdir(new_dir)
             print('Создана папка: ' + new_dir)
+        if not os.path.exists(new_dir_stocks):
+            os.mkdir(new_dir_stocks)
+            print('Создана папка: ' + new_dir_stocks)
+        if not os.path.exists(new_dir_futures):
+            os.mkdir(new_dir_futures)
+            print('Создана папка: ' + new_dir_futures)
 
-        for item in contracts:
+        for item in ALL_CONTRACTS:
             try:
-                contract = item + MAIN_CONTRACT
+                if item in long_futures:
+                    contract = item
+                    sub_dir = new_dir_futures
+                elif item in futures:
+                    contract = item + MAIN_CONTRACT
+                    sub_dir = new_dir_futures
+                else:
+                    contract = item + MAIN_CONTRACT
+                    sub_dir = new_dir_stocks
                 driver.get(MAIN_HTML + contract)
                 with open(CURRENT_DIR + 'cookies.json', 'r') as file:
                     cookies = json.load(file)
@@ -149,14 +167,23 @@ def get_selenium_page(html):
                 sleep(1)
                 open_, change, qt = get_data_contract(driver)
                 sleep(1)
-                write_csv(new_dir, contract, open_, change, qt)
+                write_csv(sub_dir, contract, open_, change, qt)
                 sleep(1)
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(f"Не удалось скачать данные {contract}")
                 continue
-
-    driver.quit()
-    os.remove(CURRENT_DIR + 'cookies.json')
+            except FileExistsError:
+                print('Файл <cookies.json не найден>')
+                continue
+    else:
+        print("Не удалось войти на главную страницу")
+        driver.quit()
+    if driver.session_id is not None:
+        driver.quit()
+    try:
+        os.remove(CURRENT_DIR + 'cookies.json')
+    except FileExistsError:
+        print('Файл <cookies.json> уже закрыт !!!')
     print("Браузер закрыт!")
 
 
