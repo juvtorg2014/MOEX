@@ -198,17 +198,17 @@ def get_main_contract():
 
 
 def check_weekday(today):
-    """Проверка субботы и воскресенья"""
+    """Проверка дат из-за субботы и воскресенья"""
     if today.weekday() == 5:
         return datetime.strftime(today - timedelta(days=1), '%Y%m%d')
     elif today.weekday() == 6:
-        return datetime.strftime(today - timedelta(days=1), '%Y%m%d')
+        return datetime.strftime(today - timedelta(days=2), '%Y%m%d')
     else:
         return datetime.strftime(today, '%Y%m%d')
 
 
 if __name__ == '__main__':
-    MAIN_CONTRACT = get_main_contract()
     start_time = datetime.now()
+    MAIN_CONTRACT = get_main_contract()
     get_selenium_page(MAIN_HTML + contracts[0] + MAIN_CONTRACT)
     print("--- %s времени прошло ---" % (datetime.now() - start_time))
