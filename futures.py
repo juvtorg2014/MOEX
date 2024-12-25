@@ -8,7 +8,8 @@ import os
 import json
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.options import Options as FOptions
+from selenium.webdriver.chrome.options import Options as COptions
 from config import username, password
 from time import sleep
 from datetime import datetime, timedelta
@@ -78,11 +79,17 @@ def get_data_contract(driver):
 def get_selenium_page(html):
     """Основной модуль получения данных"""
 
-    options = Options()
+    options = FOptions()
     options.add_argument('--headless')
-
-    driver = webdriver.Firefox(options=options)
-    driver.get(html)
+    try:
+        driver = webdriver.Firefox(options=options)
+        driver.get(html)
+    except Exception as e:
+        options = COptions()
+        options.add_argument('--headless')
+        driver = webdriver.Chrome(options=options)
+        print("Firefox dosn't work")
+        print(e)
 
     if driver.title == 'Основные параметры срочного контракта — Московская Биржа | Рынки':
         driver.implicitly_wait(3)
