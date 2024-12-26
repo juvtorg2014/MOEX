@@ -1,18 +1,18 @@
 """
  Программа для скачивания данных открытого интереса фьючерсов Московской биржи
  со страницы ежедневных данных. Доступ только пользователям личного кабинета.
- В файле <config.py> должны находиться <username=*******> и <password=*******>
+ В файле <config.py> должны находиться <username = *******> и <password = *******>
 """
 
-import os
 import json
+import os
+from datetime import datetime, timedelta
+from time import sleep
+from config import username, password
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options as COptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options as FOptions
-from selenium.webdriver.chrome.options import Options as COptions
-from config import username, password
-from time import sleep
-from datetime import datetime, timedelta
 
 MAIN_CONTRACT = ''
 MAIN_HTML = 'https://www.moex.com/ru/contract.aspx?code='

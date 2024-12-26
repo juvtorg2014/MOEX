@@ -9,6 +9,7 @@ env/
 *.csv
 *.log
 *.json
+*.env
 config.pyc
 config.py
 Data/
