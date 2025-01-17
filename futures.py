@@ -125,9 +125,9 @@ def get_selenium_page(html):
             else:
                 print('Не найдено поле <Пароль>')
             try:
-                driver.find_elements(By.CLASS_NAME, 'form-group')[2].click()
+                driver.find_element(By.CLASS_NAME, 'submit-button').click()
             except Exception:
-                pass
+                print("Вход не выполнен!!!")
         else:
             print('Не был выполнен вход по паролю')
         cookies = driver.get_cookies()
