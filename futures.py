@@ -112,19 +112,22 @@ def get_selenium_page(html):
         driver.implicitly_wait(3)
         if driver.title == 'Вход SSO':
             name = driver.find_element(By.NAME, 'credentials')
-            if name.accessible_name == 'Имя пользователя или E-mail':
+            if name.accessible_name == 'Электронная почта *':
                 name.clear()
                 name.send_keys(username)
             else:
                 print('Не найдено поле <Имя пользователя>')
             passw = driver.find_element(By.NAME, 'password')
 
-            if passw.accessible_name == 'Пароль':
+            if passw.accessible_name == 'Пароль *':
                 passw.clear()
                 passw.send_keys(password)
             else:
                 print('Не найдено поле <Пароль>')
-            driver.find_elements(By.CLASS_NAME, 'form-group')[2].click()
+            try:
+                driver.find_elements(By.CLASS_NAME, 'form-group')[2].click()
+            except Exception:
+                pass
         else:
             print('Не был выполнен вход по паролю')
         cookies = driver.get_cookies()
