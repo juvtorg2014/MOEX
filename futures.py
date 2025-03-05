@@ -91,7 +91,7 @@ def get_selenium_page(html):
         print("Firefox dosn't work")
         print(e)
 
-    if driver.title == 'Основные параметры срочного контракта — Московская Биржа | Рынки':
+    if "Московская биржа" in driver.title:
         driver.implicitly_wait(3)
         ch = driver.find_element(By.CLASS_NAME, 'disclaimer__header').find_element(By.CLASS_NAME, 'disclaimer__buttons')
         button = ch.find_element(By.TAG_NAME, 'a')
