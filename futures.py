@@ -101,14 +101,16 @@ def get_selenium_page(html):
             print("Не нажата кнопка <Согласен>")
         driver.implicitly_wait(3)
         enter = driver.find_element(By.CLASS_NAME, 'cabinet-text')
-        if enter.text == 'Вход':
+        if enter.text == "Войти":
             enter.click()
         else:
             print("Не удалось сразу войти в личный кабинет")
-            enter = driver.find_element(By.CLASS_NAME, 'cabinet-text-container')
-            enter.find_element(By.CLASS_NAME, 'cabinet-text')
-            if enter.text == 'Вход':
+            enter2 = driver.find_element(By.CLASS_NAME, 'cabinet-text-container')
+            text_enter = enter2.find_element(By.CLASS_NAME, 'cabinet-text').text
+            if text_enter == 'Войти':
                 enter.click()
+            else:
+                print('Не найдена кнопка <<Войти>>')
         driver.implicitly_wait(3)
         if driver.title == 'Вход SSO':
             name = driver.find_element(By.NAME, 'credentials')
@@ -191,9 +193,9 @@ def get_selenium_page(html):
     if driver.session_id is not None:
         driver.quit()
     try:
-        os.remove(CURRENT_DIR + 'cookies.json')
+       os.remove(CURRENT_DIR + 'cookies.json')
     except FileExistsError:
-        print('Файл <cookies.json> уже закрыт !!!')
+       print('Файл <cookies.json> уже закрыт !!!')
     print("Браузер закрыт!")
 
 
