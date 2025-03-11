@@ -100,7 +100,7 @@ def get_selenium_page(html):
         else:
             print("Не нажата кнопка <Согласен>")
         driver.implicitly_wait(3)
-        enter = driver.find_element(By.CLASS_NAME, 'cabinet-text')
+        enter = driver.find_element(By.CLASS_NAME, 'header-user-profile')
         if enter.text == "Войти":
             enter.click()
         else:
@@ -158,17 +158,10 @@ def get_selenium_page(html):
             os.mkdir(new_dir_futures)
             print('Создана папка: ' + new_dir_futures)
 
+        unload_items = []
         for item in ALL_CONTRACTS:
             try:
-                if item in long_futures:
-                    contract = item
-                    sub_dir = new_dir_futures
-                elif item in futures:
-                    contract = item + MAIN_CONTRACT
-                    sub_dir = new_dir_futures
-                else:
-                    contract = item + MAIN_CONTRACT
-                    sub_dir = new_dir_stocks
+                contract, sub_dir = get_name_and_dir(item, new_dir_futures, new_dir_stocks)
                 driver.get(MAIN_HTML + contract)
                 with open(CURRENT_DIR + 'cookies.json', 'r') as file:
                     cookies = json.load(file)
@@ -176,20 +169,34 @@ def get_selenium_page(html):
                         driver.add_cookie(cookie)
                 driver.refresh()
                 print(driver.current_url)
-                sleep(1)
                 open_, change, qt = get_data_contract(driver)
                 sleep(1)
                 write_csv(sub_dir, contract, open_, change, qt)
-                sleep(1)
             except Exception:
                 print(f"Не удалось скачать данные {contract}")
+                unload_items.append(contract)
                 continue
             except FileExistsError:
                 print('Файл <cookies.json не найден>')
                 continue
+        if len(unload_items) > 0:
+            for item in unload_items:
+                try:
+                    print(f"Этот контракт {item} не скачался! Но пробуем ещё раз!")
+                    contract, sub_dir = get_name_and_dir(item, new_dir_futures, new_dir_stocks)
+                    driver.get(MAIN_HTML + contract)
+                    driver.refresh()
+                    print(driver.current_url)
+                    open_, change, qt = get_data_contract(driver)
+                    sleep(1)
+                    write_csv(sub_dir, contract, open_, change, qt)
+                except Exception:
+                    print(f'Повторно не удалось скачать контракт {item}')
+                    continue
     else:
         print("Не удалось войти на главную страницу")
         driver.quit()
+
     if driver.session_id is not None:
         driver.quit()
     try:
@@ -197,6 +204,23 @@ def get_selenium_page(html):
     except FileExistsError:
        print('Файл <cookies.json> уже закрыт !!!')
     print("Браузер закрыт!")
+
+
+def get_name_and_dir(item, dir_futures,dir_stocks) -> list:
+    """Получение имени контракта и директории для записи файла"""
+    return_list = []
+    if item in long_futures:
+        contract = item
+        sub_dir = dir_futures
+    elif item in futures:
+        contract = item + MAIN_CONTRACT
+        sub_dir = dir_futures
+    else:
+        contract = item + MAIN_CONTRACT
+        sub_dir = dir_stocks
+    return_list.append(contract)
+    return_list.append(sub_dir)
+    return return_list
 
 
 def get_main_contract():
@@ -224,3 +248,4 @@ if __name__ == '__main__':
     MAIN_CONTRACT = get_main_contract()
     get_selenium_page(MAIN_HTML + contracts[0] + MAIN_CONTRACT)
     print("--- %s времени прошло ---" % (datetime.now() - start_time))
+    sleep(15)
