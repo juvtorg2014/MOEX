@@ -180,6 +180,10 @@ def get_selenium_page(html):
                 print('Файл <cookies.json не найден>')
                 continue
         if len(unload_items) > 0:
+            file_error = new_dir + "unloaded.csv"
+            with open(file_error, 'w', encoding='utf-8') as fw:
+                for item in unload_items:
+                    fw.writelines(item)
             for item in unload_items:
                 try:
                     print(f"Этот контракт {item} не скачался! Но пробуем ещё раз!")
@@ -199,10 +203,11 @@ def get_selenium_page(html):
 
     if driver.session_id is not None:
         driver.quit()
-    try:
-       os.remove(CURRENT_DIR + 'cookies.json')
-    except FileExistsError:
-       print('Файл <cookies.json> уже закрыт !!!')
+    if os.path.exists('cookies.json'):
+        try:
+           os.remove(CURRENT_DIR + 'cookies.json')
+        except FileExistsError:
+           print('Файл <cookies.json> уже закрыт !!!')
     print("Браузер закрыт!")
 
 
