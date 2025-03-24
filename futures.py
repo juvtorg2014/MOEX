@@ -15,19 +15,27 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options as FOptions
 
 MAIN_CONTRACT = ''
-MAIN_HTML = 'https://www.moex.com/ru/contract.aspx?code='
-TRIPLE_D = [{'Z4': '20-12-2024'}, {'H5': '21-03-2025'}, {'M5': '20-06-2025'}, {'U5': '19-09-2025'}, {'Z5': '19-12-2025'}]
+COUNT_REPEAT = 5
+MAIN_HTML = 'https://www.moex.com/ru/contract.aspx?cod='
+TRIPLE_D = [{'Z4': '19-12-2024'}, {'H5': '20-03-2025'}, {'M5': '19-06-2025'}, {'U5': '18-09-2025'}, {'Z5': '18-12-2025'}]
 
-contracts = ['AF', 'AK', 'AL', 'AS', 'BN', 'BS', 'CH', 'CM', 'FE', 'FL', 'FS', 'GK', 'GZ', 'HY', 'IR', 'IS',
-             'KM', 'LE', 'LK', 'MC', 'ME', 'MG', 'MN', 'MT', 'MV', 'NK', 'NM', 'PH', 'PI', 'PS', 'PZ', 'RA',
-             'RL', 'RN', 'RT', 'RU', 'SO', 'SC', 'SE', 'SG', 'SH', 'SO', 'SP', 'SR', 'SS', 'SZ', 'TI', 'TN',
-             'TP', 'TT', 'VB', 'VK', 'WU', 'YD']
 
-futures = ['AE', 'BB', 'BD', 'BR', 'CC', 'CF', 'CR', 'DJ', 'DX', 'ED', 'EU', 'FN', 'GD', 'GL', 'HS', 'IP',
-           'JP', 'MA', 'MM', 'MX', 'NA', 'NG', 'OG', 'PD', 'PT', 'R2', 'RB', 'RI', 'RM', 'SF', 'SV', 'SX',
-           'SI', 'SU', 'TY', 'UC', 'W4']
+# 57 фьючерсных контракта на акции
+# contracts = ['AF', 'AK', 'AL', 'AS', 'BN', 'BS', 'CH', 'CM', 'FE', 'FL', 'FS', 'GK', 'GZ', 'HY', 'IR', 'IS',
+#              'KM', 'LE', 'LK', 'MC', 'ME', 'MG', 'MN', 'MT', 'MV', 'NB', 'NK', 'NM', 'PH', 'PI', 'PS', 'PZ',
+#              'RA', 'RL', 'RN', 'RT', 'RU', 'S0', 'SC', 'SE', 'SG', 'SH', 'SN','SO', 'SP', 'SR', 'SS', 'SZ',
+#              'T', 'TI', 'TN', 'TP', 'TT', 'VB', 'VK', 'WU', 'YD']
+contracts = ['AF', 'AK', 'YD']
 
-long_futures = ['CNYRUBF', 'EURRUBF', 'GLDRUBF', 'IMOEXF', 'USDRUBF']
+# 41 контракт на 3-х месячные фьючерсы
+# futures = ['AE', 'BB', 'BD', 'BR', 'CF', 'CR', 'CS','DJ', 'DX', 'ED', 'EM','EU', 'FN', 'GD', 'GL', 'GU',
+#            'HK', 'HO', 'HS', 'IP', 'JP', 'KZ','MA', 'MM', 'MX', 'N2', 'NA', 'OG', 'PD', 'PT', 'R2', 'RB',
+#            'RI', 'RM', 'SF', 'SV', 'SX', 'SI', 'TY', 'UC', 'W4']
+futures = ['AE', 'BB', 'BD']
+
+commodities = ['AL', 'BR', 'CO', 'NG', 'NI', 'WH', 'ZN']
+
+long_futures = ['CNYRUBF', 'EURRUBF']
 
 ALL_CONTRACTS = contracts + futures + long_futures
 
@@ -76,7 +84,7 @@ def get_data_contract(driver):
     return open_pos, change_pos, quantity
 
 
-def get_selenium_page(html):
+def get_selenium_page(html) -> int:
     """Основной модуль получения данных"""
 
     options = FOptions()
@@ -180,10 +188,11 @@ def get_selenium_page(html):
                 print('Файл <cookies.json не найден>')
                 continue
         if len(unload_items) > 0:
-            file_error = new_dir + "unloaded.csv"
+            file_error = new_dir + time_page + "_unloaded.csv"
             with open(file_error, 'w', encoding='utf-8') as fw:
                 for item in unload_items:
                     fw.writelines(item)
+                    fw.write('\n')
             for item in unload_items:
                 try:
                     print(f"Этот контракт {item} не скачался! Но пробуем ещё раз!")
@@ -200,6 +209,7 @@ def get_selenium_page(html):
     else:
         print("Не удалось войти на главную страницу")
         driver.quit()
+        return 0
 
     if driver.session_id is not None:
         driver.quit()
@@ -209,6 +219,11 @@ def get_selenium_page(html):
         except FileExistsError:
            print('Файл <cookies.json> уже закрыт !!!')
     print("Браузер закрыт!")
+    if len(os.listdir(new_dir + 'futures\\')) > 0\
+            and  len(os.listdir(new_dir + 'futures\\')) > 0:
+        return 1
+    else:
+        return 0
 
 
 def get_name_and_dir(item, dir_futures,dir_stocks) -> list:
@@ -251,6 +266,14 @@ def check_weekday(today):
 if __name__ == '__main__':
     start_time = datetime.now()
     MAIN_CONTRACT = get_main_contract()
-    get_selenium_page(MAIN_HTML + contracts[0] + MAIN_CONTRACT)
+    count = 0
+    while count < COUNT_REPEAT:
+        count += 1
+        result = get_selenium_page(MAIN_HTML + contracts[0] + MAIN_CONTRACT)
+        if result == 0:
+            print(f"Осталось ещё до {COUNT_REPEAT - count} попыток")
+            result = get_selenium_page(MAIN_HTML + contracts[0] + MAIN_CONTRACT)
+        else:
+            break
     print("--- %s времени прошло ---" % (datetime.now() - start_time))
     sleep(15)
