@@ -21,17 +21,16 @@ TRIPLE_D = [{'Z4': '19-12-2024'}, {'H5': '20-03-2025'}, {'M5': '19-06-2025'}, {'
 
 
 # 57 фьючерсных контракта на акции
-# contracts = ['AF', 'AK', 'AL', 'AS', 'BN', 'BS', 'CH', 'CM', 'FE', 'FL', 'FS', 'GK', 'GZ', 'HY', 'IR', 'IS',
-#              'KM', 'LE', 'LK', 'MC', 'ME', 'MG', 'MN', 'MT', 'MV', 'NB', 'NK', 'NM', 'PH', 'PI', 'PS', 'PZ',
-#              'RA', 'RL', 'RN', 'RT', 'RU', 'S0', 'SC', 'SE', 'SG', 'SH', 'SN','SO', 'SP', 'SR', 'SS', 'SZ',
-#              'T', 'TI', 'TN', 'TP', 'TT', 'VB', 'VK', 'WU', 'YD']
-contracts = ['AF', 'AK', 'YD']
+contracts = ['AF', 'AK', 'AL', 'AS', 'BN', 'BS', 'CH', 'CM', 'FE', 'FL', 'FS', 'GK', 'GZ', 'HY', 'IR', 'IS',
+             'KM', 'LE', 'LK', 'MC', 'ME', 'MG', 'MN', 'MT', 'MV', 'NB', 'NK', 'NM', 'PH', 'PI', 'PS', 'PZ',
+             'RA', 'RL', 'RN', 'RT', 'RU', 'S0', 'SC', 'SE', 'SG', 'SH', 'SN','SO', 'SP', 'SR', 'SS', 'SZ',
+             'T', 'TI', 'TN', 'TP', 'TT', 'VB', 'VK', 'WU', 'YD']
+
 
 # 41 контракт на 3-х месячные фьючерсы
-# futures = ['AE', 'BB', 'BD', 'BR', 'CF', 'CR', 'CS','DJ', 'DX', 'ED', 'EM','EU', 'FN', 'GD', 'GL', 'GU',
-#            'HK', 'HO', 'HS', 'IP', 'JP', 'KZ','MA', 'MM', 'MX', 'N2', 'NA', 'OG', 'PD', 'PT', 'R2', 'RB',
-#            'RI', 'RM', 'SF', 'SV', 'SX', 'SI', 'TY', 'UC', 'W4']
-futures = ['AE', 'BB', 'BD']
+futures = ['AE', 'BB', 'BD', 'BR', 'CF', 'CR', 'CS','DJ', 'DX', 'ED', 'EM','EU', 'FN', 'GD', 'GL', 'GU',
+           'HK', 'HO', 'HS', 'IP', 'JP', 'KZ','MA', 'MM', 'MX', 'N2', 'NA', 'OG', 'PD', 'PT', 'R2', 'RB',
+           'RI', 'RM', 'SF', 'SV', 'SX', 'SI', 'TY', 'UC', 'W4']
 
 commodities = ['AL', 'BR', 'CO', 'NG', 'NI', 'WH', 'ZN']
 
