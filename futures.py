@@ -16,7 +16,7 @@ from selenium.webdriver.firefox.options import Options as FOptions
 
 MAIN_CONTRACT = ''
 COUNT_REPEAT = 5
-MAIN_HTML = 'https://www.moex.com/ru/contract.aspx?cod='
+MAIN_HTML = 'https://www.moex.com/ru/contract.aspx?code='
 TRIPLE_D = [{'Z4': '19-12-2024'}, {'H5': '20-03-2025'}, {'M5': '19-06-2025'}, {'U5': '18-09-2025'}, {'Z5': '18-12-2025'}]
 
 
@@ -26,17 +26,18 @@ contracts = ['AF', 'AK', 'AL', 'AS', 'BN', 'BS', 'CH', 'CM', 'FE', 'FL', 'FS', '
              'RA', 'RL', 'RN', 'RT', 'RU', 'S0', 'SC', 'SE', 'SG', 'SH', 'SN','SO', 'SP', 'SR', 'SS', 'SZ',
              'T', 'TI', 'TN', 'TP', 'TT', 'VB', 'VK', 'WU', 'YD']
 
-
 # 41 контракт на 3-х месячные фьючерсы
 futures = ['AE', 'BB', 'BD', 'BR', 'CF', 'CR', 'CS','DJ', 'DX', 'ED', 'EM','EU', 'FN', 'GD', 'GL', 'GU',
            'HK', 'HO', 'HS', 'IP', 'JP', 'KZ','MA', 'MM', 'MX', 'N2', 'NA', 'OG', 'PD', 'PT', 'R2', 'RB',
            'RI', 'RM', 'SF', 'SV', 'SX', 'SI', 'TY', 'UC', 'W4']
 
-commodities = ['AL', 'BR', 'CO', 'NG', 'NI', 'WH', 'ZN']
+# Не стандартные фьючерсы: 2-х и 1-месячные
+commodities = ['AL', 'BR', 'CC','CO', 'NG', 'NI', 'SU', 'WH', 'ZN']
 
-long_futures = ['CNYRUBF', 'EURRUBF']
+# Вечные фьючерсы
+long_futures = ['CNYRUBF', 'EURRUBF', 'GLDRUBF', 'IMOEXF', 'USDRUBF']
 
-ALL_CONTRACTS = contracts + futures + long_futures
+BIG_CONTRACTS = contracts + futures + long_futures
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__)) + '\\'
 
@@ -140,8 +141,8 @@ def get_selenium_page(html) -> int:
         else:
             print('Не был выполнен вход по паролю')
         cookies = driver.get_cookies()
-        with open(CURRENT_DIR + 'cookies.json', 'w') as file:
-            json.dump(cookies, file)
+        file_cookies = open(CURRENT_DIR + 'cookies.json', 'w')
+        json.dump(cookies, file_cookies)
         sleep(3)
         try:
             today = driver.find_element(By.ID, 'digest_refresh_time').text.split(' ')[0]
@@ -164,21 +165,22 @@ def get_selenium_page(html) -> int:
         if not os.path.exists(new_dir_futures):
             os.mkdir(new_dir_futures)
             print('Создана папка: ' + new_dir_futures)
-
+# Главная процедура загрузки контрактов
         unload_items = []
-        for item in ALL_CONTRACTS:
+        for item in BIG_CONTRACTS:
             try:
                 contract, sub_dir = get_name_and_dir(item, new_dir_futures, new_dir_stocks)
                 driver.get(MAIN_HTML + contract)
-                with open(CURRENT_DIR + 'cookies.json', 'r') as file:
-                    cookies = json.load(file)
-                    for cookie in cookies:
-                        driver.add_cookie(cookie)
+                # with open(CURRENT_DIR + 'cookies.json', 'r') as file:
+                #     cookies = json.load(file)
+                #     for cookie in cookies:
+                #         driver.add_cookie(cookie)
                 driver.refresh()
                 print(driver.current_url)
                 open_, change, qt = get_data_contract(driver)
                 sleep(1)
-                write_csv(sub_dir, contract, open_, change, qt)
+                if not os.path.exists(sub_dir + contract + '_' + time_page + '_OI.csv'):
+                    write_csv(sub_dir, contract, open_, change, qt)
             except Exception:
                 print(f"Не удалось скачать данные {contract}")
                 unload_items.append(contract)
@@ -212,11 +214,11 @@ def get_selenium_page(html) -> int:
 
     if driver.session_id is not None:
         driver.quit()
-    if os.path.exists('cookies.json'):
-        try:
-           os.remove(CURRENT_DIR + 'cookies.json')
-        except FileExistsError:
-           print('Файл <cookies.json> уже закрыт !!!')
+    # if os.path.exists('cookies.json'):
+    #     try:
+    #        os.remove(CURRENT_DIR + 'cookies.json')
+    #     except FileExistsError:
+    #        print('Файл <cookies.json> уже закрыт !!!')
     print("Браузер закрыт!")
     if len(os.listdir(new_dir + 'futures\\')) > 0\
             and  len(os.listdir(new_dir + 'futures\\')) > 0:
