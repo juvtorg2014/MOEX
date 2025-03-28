@@ -8,38 +8,40 @@ import json
 import os
 from datetime import datetime, timedelta
 from time import sleep
+import calendar
 from config import username, password
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as COptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options as FOptions
 
-MAIN_CONTRACT = ''
 COUNT_REPEAT = 5
 MAIN_HTML = 'https://www.moex.com/ru/contract.aspx?code='
-TRIPLE_D = [{'Z4': '19-12-2024'}, {'H5': '20-03-2025'}, {'M5': '19-06-2025'}, {'U5': '18-09-2025'}, {'Z5': '18-12-2025'}]
+TRIPLE_D = [{'Z4': '19-12-2024'}, {'H5': '20-03-2025'}, {'M5': '18-06-2025'}, {'U5': '17-09-2025'}, {'Z5': '18-12-2025'}]
 
+
+CODE_FUTURES = {'1':'F','2':'G','3':'H','4':'J','5':'K','6':'M',
+               '7':'N','8':'Q','9':'U','10':'V','11':'X','12':'Z'}
 
 # 57 фьючерсных контракта на акции
-contracts = ['AF', 'AK', 'AL', 'AS', 'BN', 'BS', 'CH', 'CM', 'FE', 'FL', 'FS', 'GK', 'GZ', 'HY', 'IR', 'IS',
+CONTRACTS = ['AF', 'AK', 'AL', 'AS', 'BN', 'BS', 'CH', 'CM', 'FE', 'FL', 'FS', 'GK', 'GZ', 'HY', 'IR', 'IS',
              'KM', 'LE', 'LK', 'MC', 'ME', 'MG', 'MN', 'MT', 'MV', 'NB', 'NK', 'NM', 'PH', 'PI', 'PS', 'PZ',
              'RA', 'RL', 'RN', 'RT', 'RU', 'S0', 'SC', 'SE', 'SG', 'SH', 'SN','SO', 'SP', 'SR', 'SS', 'SZ',
              'T', 'TI', 'TN', 'TP', 'TT', 'VB', 'VK', 'WU', 'YD']
 
-# 41 контракт на 3-х месячные фьючерсы
-futures = ['AE', 'BB', 'BD', 'BR', 'CF', 'CR', 'CS','DJ', 'DX', 'ED', 'EM','EU', 'FN', 'GD', 'GL', 'GU',
-           'HK', 'HO', 'HS', 'IP', 'JP', 'KZ','MA', 'MM', 'MX', 'N2', 'NA', 'OG', 'PD', 'PT', 'R2', 'RB',
-           'RI', 'RM', 'SF', 'SV', 'SX', 'SI', 'TY', 'UC', 'W4']
-
-# Не стандартные фьючерсы: 2-х и 1-месячные
-commodities = ['AL', 'BR', 'CC','CO', 'NG', 'NI', 'SU', 'WH', 'ZN']
+# 46 контракт на 3-х месячные фьючерсы
+FUTURES = ['AE', 'AN', 'BB', 'BD', 'BR', 'CE', 'CF', 'CR', 'DJ', 'DX', 'ED', 'EM','EU', 'FN', 'GD', 'GL',
+           'GU', 'HK', 'HO', 'HS', 'I2', 'IP', 'JP', 'KZ', 'MA', 'MM', 'MX', 'MY', 'N2', 'NA', 'NC', 'ND',
+           'OG', 'PD', 'PT', 'R2', 'RB', 'RI', 'RM', 'SF', 'SI', 'SV', 'SX', 'SI', 'TY', 'UC']
 
 # Вечные фьючерсы
-long_futures = ['CNYRUBF', 'EURRUBF', 'GLDRUBF', 'IMOEXF', 'USDRUBF']
-
-BIG_CONTRACTS = contracts + futures + long_futures
-
+LONG_FUTURES = ['CNYRUBF', 'EURRUBF', 'GLDRUBF', 'IMOEXF', 'USDRUBF']
+BIG_CONTRACTS = CONTRACTS + FUTURES
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__)) + '\\'
+
+CURRENT_YEAR = datetime.today().date().year
+CODE_YEAR = str(CURRENT_YEAR - 2020)
+THIRD_THURSDAY = ['2025-05-15','2025-07-17','2025-09-16']
 
 
 def write_csv(path_dir, contract, op, cp, qt):
@@ -147,11 +149,27 @@ def get_selenium_page(html) -> int:
         try:
             today = driver.find_element(By.ID, 'digest_refresh_time').text.split(' ')[0]
             today = datetime.strptime(today.replace('.', ''), '%d%m%Y').date() - timedelta(days=1)
-            time_page = check_weekday(today)
+            last_day = check_weekday(today.day, today.month)
+            if last_day < 10:
+                last_day = '0' + str(last_day)
+            else:
+                last_day = str(last_day)
+            if today.month < 10:
+                time_page = str(today.year) + '0' + str(today.month) + last_day
+            else:
+                time_page = str(today.year) + str(today.month) + last_day
         except Exception:
             print("Не удалось получить дату со страницы !!!")
             today = datetime.today().date()-timedelta(days=1)
-            time_page = check_weekday(today)
+            last_day = check_weekday(today.day, today.month)
+            if last_day < 10:
+                last_day = '0' + str(last_day)
+            else:
+                last_day = str(last_day)
+            if today.month < 10:
+                time_page = str(today.year) + '0' + str(today.month) + last_day
+            else:
+                time_page = str(today.year) + str(today.month) + last_day
 
         new_dir = CURRENT_DIR + time_page + '\\'
         new_dir_stocks = new_dir + 'stocks' + '\\'
@@ -167,23 +185,31 @@ def get_selenium_page(html) -> int:
             print('Создана папка: ' + new_dir_futures)
 # Главная процедура загрузки контрактов
         unload_items = []
-        for item in BIG_CONTRACTS:
+        all_contracts = []
+        unusual_futures = unusual_contract(today)
+        big_contracts = list(map(lambda x: x + MAIN_CONTRACT, BIG_CONTRACTS))
+        all_contracts = big_contracts + LONG_FUTURES + unusual_futures
+        for item in all_contracts:
             try:
-                contract, sub_dir = get_name_and_dir(item, new_dir_futures, new_dir_stocks)
-                driver.get(MAIN_HTML + contract)
+                if item[:-2] in CONTRACTS:
+                    sub_dir = new_dir_stocks
+                else:
+                    sub_dir = new_dir_futures
+                driver.get(MAIN_HTML + item)
                 # with open(CURRENT_DIR + 'cookies.json', 'r') as file:
                 #     cookies = json.load(file)
                 #     for cookie in cookies:
                 #         driver.add_cookie(cookie)
                 driver.refresh()
                 print(driver.current_url)
+                sleep(2)
                 open_, change, qt = get_data_contract(driver)
-                sleep(1)
-                if not os.path.exists(sub_dir + contract + '_' + time_page + '_OI.csv'):
-                    write_csv(sub_dir, contract, open_, change, qt)
+                sleep(2)
+                if not os.path.exists(sub_dir + item + '_' + time_page + '_OI.csv'):
+                    write_csv(sub_dir, item, open_, change, qt)
             except Exception:
-                print(f"Не удалось скачать данные {contract}")
-                unload_items.append(contract)
+                print(f"Не удалось скачать данные {item}")
+                unload_items.append(item)
                 continue
             except FileExistsError:
                 print('Файл <cookies.json не найден>')
@@ -197,13 +223,16 @@ def get_selenium_page(html) -> int:
             for item in unload_items:
                 try:
                     print(f"Этот контракт {item} не скачался! Но пробуем ещё раз!")
-                    contract, sub_dir = get_name_and_dir(item, new_dir_futures, new_dir_stocks)
-                    driver.get(MAIN_HTML + contract)
+                    if item[:-2] in [CONTRACTS]:
+                        sub_dir = new_dir_stocks
+                    else:
+                        sub_dir = new_dir_futures
+                    driver.get(MAIN_HTML + item)
                     driver.refresh()
                     print(driver.current_url)
                     open_, change, qt = get_data_contract(driver)
                     sleep(1)
-                    write_csv(sub_dir, contract, open_, change, qt)
+                    write_csv(sub_dir, item, open_, change, qt)
                 except Exception:
                     print(f'Повторно не удалось скачать контракт {item}')
                     continue
@@ -226,22 +255,40 @@ def get_selenium_page(html) -> int:
     else:
         return 0
 
+def unusual_contract(date) -> list:
+    """ Нестандартныe фьючерсы по 1 и 2 месяца """
+    list_contracts = []
+    month = date.month
+    middle_work_day = check_weekday(15, month)
+    last_day = calendar.monthrange(CURRENT_YEAR, month)[1]
+    last_work_day = check_weekday(last_day, month)
 
-def get_name_and_dir(item, dir_futures,dir_stocks) -> list:
-    """Получение имени контракта и директории для записи файла"""
-    return_list = []
-    if item in long_futures:
-        contract = item
-        sub_dir = dir_futures
-    elif item in futures:
-        contract = item + MAIN_CONTRACT
-        sub_dir = dir_futures
+    date_str = datetime.strftime(date, '%Y-%m-%d')
+    if date.day > 1:
+        code_brent  = 'BR' + CODE_FUTURES.get(str(month + 1)) + CODE_YEAR
+    list_contracts.append(code_brent)
+
+    if date.day > middle_work_day:
+        code_sugar = 'SU' + CODE_FUTURES.get(str(month + 1)) + CODE_YEAR
+        list_contracts.append(code_sugar)
     else:
-        contract = item + MAIN_CONTRACT
-        sub_dir = dir_stocks
-    return_list.append(contract)
-    return_list.append(sub_dir)
-    return return_list
+        code_sugar = 'SU' + CODE_FUTURES.get(str(month)) + CODE_YEAR
+        list_contracts.append(code_sugar)
+
+    if date.day < last_work_day:
+        code_wheat = 'WH' + CODE_FUTURES.get(str(month)) + CODE_YEAR
+        list_contracts.append(code_wheat)
+
+    if date_str < THIRD_THURSDAY[0]:
+        code_cocoa = 'CC' + 'K' + CODE_YEAR
+    elif date_str >= THIRD_THURSDAY[0] and date < THIRD_THURSDAY[1]:
+        code_cocoa = 'CC' + 'N' + CODE_YEAR
+    elif date_str >= THIRD_THURSDAY[1] and date < THIRD_THURSDAY[2]:
+        code_cocoa = 'CC' + 'U' + CODE_YEAR
+    else:
+        date_str = 'CC' + 'X' + CODE_YEAR
+    list_contracts.append(code_cocoa)
+    return list_contracts
 
 
 def get_main_contract():
@@ -254,14 +301,15 @@ def get_main_contract():
                 return key
 
 
-def check_weekday(today):
+def check_weekday(day, month):
     """Проверка дат из-за субботы и воскресенья"""
-    if today.weekday() == 5:
-        return datetime.strftime(today - timedelta(days=1), '%Y%m%d')
-    elif today.weekday() == 6:
-        return datetime.strftime(today - timedelta(days=2), '%Y%m%d')
+    if calendar.weekday(CURRENT_YEAR, month, day) == 6:
+        new_day = day - 2
+    elif calendar.weekday(CURRENT_YEAR, month, day) == 5:
+        new_day = day - 1
     else:
-        return datetime.strftime(today, '%Y%m%d')
+        new_day = day
+    return new_day
 
 
 if __name__ == '__main__':
@@ -270,10 +318,10 @@ if __name__ == '__main__':
     count = 0
     while count < COUNT_REPEAT:
         count += 1
-        result = get_selenium_page(MAIN_HTML + contracts[0] + MAIN_CONTRACT)
+        result = get_selenium_page(MAIN_HTML + CONTRACTS[0] + MAIN_CONTRACT)
         if result == 0:
             print(f"Осталось ещё до {COUNT_REPEAT - count} попыток")
-            result = get_selenium_page(MAIN_HTML + contracts[0] + MAIN_CONTRACT)
+            result = get_selenium_page(MAIN_HTML + CONTRACTS[0] + MAIN_CONTRACT)
         else:
             break
     print("--- %s времени прошло ---" % (datetime.now() - start_time))
