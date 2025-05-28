@@ -27,7 +27,7 @@ CODE_FUTURES = {'1':'F','2':'G','3':'H','4':'J','5':'K','6':'M',
 CONTRACTS = ['AF', 'AK', 'AL', 'AS', 'BN', 'BS', 'CH', 'CM', 'FE', 'FL', 'FS', 'GK', 'GZ', 'HY', 'IR', 'IS',
              'KM', 'LE', 'LK', 'MC', 'ME', 'MG', 'MN', 'MT', 'MV', 'NB', 'NK', 'NM', 'PH', 'PI', 'PS', 'PZ',
              'RA', 'RL', 'RN', 'RT', 'RU', 'S0', 'SC', 'SE', 'SG', 'SH', 'SN','SO', 'SP', 'SR', 'SS', 'SZ',
-             'T', 'TI', 'TN', 'TP', 'TT', 'VB', 'VK', 'WU', 'YD']
+             'TB', 'TI', 'TN', 'TP', 'TT', 'VB', 'VK', 'WU', 'YD']
 
 # 46 контракт на 3-х месячные фьючерсы
 FUTURES = ['AE', 'AN', 'BB', 'BD', 'BR', 'CE', 'CF', 'CR', 'DJ', 'DX', 'ED', 'EM','EU', 'FN', 'GD', 'GL',
@@ -110,7 +110,7 @@ def get_selenium_page(html) -> int:
         else:
             print("Не нажата кнопка <Согласен>")
         driver.implicitly_wait(3)
-        enter = driver.find_element(By.CLASS_NAME, 'header-user-profile')
+        enter = driver.find_element(By.CLASS_NAME, 'header-old-user-profile')
         if enter.text == "Войти":
             enter.click()
         else:
@@ -229,9 +229,10 @@ def get_selenium_page(html) -> int:
                         sub_dir = new_dir_futures
                     driver.get(MAIN_HTML + item)
                     driver.refresh()
+                    sleep(2)
                     print(driver.current_url)
                     open_, change, qt = get_data_contract(driver)
-                    sleep(1)
+                    sleep(2)
                     write_csv(sub_dir, item, open_, change, qt)
                 except Exception:
                     print(f'Повторно не удалось скачать контракт {item}')
@@ -264,26 +265,26 @@ def unusual_contract(date) -> list:
     last_work_day = check_weekday(last_day, month)
 
     date_str = datetime.strftime(date, '%Y-%m-%d')
-    if date.day > 1:
+    if date.day >= 1:
         code_brent  = 'BR' + CODE_FUTURES.get(str(month + 1)) + CODE_YEAR
     list_contracts.append(code_brent)
 
-    if date.day > middle_work_day:
+    if date.day >= middle_work_day:
         code_sugar = 'SU' + CODE_FUTURES.get(str(month + 1)) + CODE_YEAR
         list_contracts.append(code_sugar)
     else:
         code_sugar = 'SU' + CODE_FUTURES.get(str(month)) + CODE_YEAR
         list_contracts.append(code_sugar)
 
-    if date.day < last_work_day:
+    if date.day <= last_work_day:
         code_wheat = 'WH' + CODE_FUTURES.get(str(month)) + CODE_YEAR
         list_contracts.append(code_wheat)
 
     if date_str < THIRD_THURSDAY[0]:
         code_cocoa = 'CC' + 'K' + CODE_YEAR
-    elif date_str >= THIRD_THURSDAY[0] and date < THIRD_THURSDAY[1]:
+    elif date_str >= THIRD_THURSDAY[0] and date_str < THIRD_THURSDAY[1]:
         code_cocoa = 'CC' + 'N' + CODE_YEAR
-    elif date_str >= THIRD_THURSDAY[1] and date < THIRD_THURSDAY[2]:
+    elif date_str >= THIRD_THURSDAY[1] and date_str < THIRD_THURSDAY[2]:
         code_cocoa = 'CC' + 'U' + CODE_YEAR
     else:
         date_str = 'CC' + 'X' + CODE_YEAR
