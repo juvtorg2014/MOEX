@@ -1,5 +1,6 @@
 import pandas as pd
 import sqlite3
+import os
 from sqlite3 import OperationalError
 from pandas import ExcelWriter
 import openpyxl
@@ -66,7 +67,8 @@ stocks_name = make_name_stocks(DB_PATH)
 for stock in stocks_name:
     print(stock)
     daily_highs, daily_lows = get_stock_data(DB_PATH, start_date, end_date, stock)
-    with ExcelWriter("stocks_data_from_db.xlsx", engine='openpyxl') as writer:
+    output_file = os.path.join(os.getcwd(), OUTPUT_FILE)
+    with ExcelWriter(output_file, engine='openpyxl') as writer:
         if not daily_highs.empty:
             daily_highs.to_excel(writer, sheet_name=stock, index=False)
         if not daily_lows.empty:
