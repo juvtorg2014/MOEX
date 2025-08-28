@@ -1,7 +1,9 @@
-venv/
+.venv/
+.venv/
 .idea/
 pycache
 env/
+csv_data/
 *.log
 *.exe
 *.mp4
@@ -10,6 +12,10 @@ env/
 *.log
 *.json
 *.env
+*.png
+*.db
+*.xls
+*.xlsx
 config.pyc
 config.py
 Data/
