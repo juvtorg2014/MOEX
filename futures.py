@@ -122,7 +122,6 @@ def get_selenium_page(html) -> int:
         except Exception as e:
             print(f"Способ 1 не сработал: {e}")
 
-            # СПОСОБ 2: Поиск по тексту "Войти"
             try:
                 print("Способ 2: Ищу кнопку по тексту 'Войти'...")
                 login_button = wait.until(
@@ -133,7 +132,6 @@ def get_selenium_page(html) -> int:
             except Exception as e2:
                 print(f"Способ 2 не сработал: {e2}")
 
-                # СПОСОБ 3: Поиск всех кнопок с анализом
                 print("Способ 3: Анализирую все кнопки на странице...")
                 all_buttons = driver.find_elements(By.TAG_NAME, "button")
                 print(f"Найдено кнопок: {len(all_buttons)}")
