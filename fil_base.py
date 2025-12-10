@@ -4,24 +4,21 @@ import glob
 import os
 
 
-def create_database_from_csv(csv_folder='csv_data', db_name='stocks.db'):
+def create_database_from_csv(csv_folder, db_name):
     """
     Создает базу данных SQLite из CSV-файлов без заголовков.
     Предполагаемый порядок колонок: Date, Time, Open, High, Low, Close, Volume, ATR.
     """
 
-    # Подключаемся к базе данных
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
 
-    # Находим все CSV-файлы в указанной папке
     csv_files = glob.glob(os.path.join(csv_folder, '*.csv'))
 
     if not csv_files:
         print(f"В папке '{csv_folder}' не найдено CSV-файлов.")
         return
 
-    # Определяем имена колонок в правильном порядке
     column_names = ['Date', 'Time', 'Open', 'High', 'Low', 'Close', 'Volume', 'ATR']
 
     for csv_file in csv_files:
@@ -75,7 +72,12 @@ def create_database_from_csv(csv_folder='csv_data', db_name='stocks.db'):
                     print(f"Ошибка при вставке данных: {e}")
                     continue
 
-            # Заполняем таблицу данными
+            # Сортировка сначала по дате (date), затем по времени (time)
+            cursor.execute(f'''
+            SELECT " FROM {stock_name}" 
+            ORDER BY Date ASC, Time ASC
+            ''')
+
             # df.to_sql(name=stock_name, con=conn, if_exists='append', index=False)
             print(f"Данные для акции {stock_name} успешно загружены из {csv_file}")
 
@@ -91,4 +93,6 @@ def create_database_from_csv(csv_folder='csv_data', db_name='stocks.db'):
 
 
 if __name__ == '__main__':
-    create_database_from_csv()
+    csv_folder = 'csv_data'
+    db_name = 'MOEX_HOUR'
+    create_database_from_csv(csv_folder, db_name)

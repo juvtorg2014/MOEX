@@ -11,8 +11,11 @@ from time import sleep
 import calendar
 from config import username, password
 from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options as COptions
 from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.firefox.options import Options as FOptions
 
 COUNT_REPEAT = 5
@@ -41,7 +44,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__)) + '\\'
 
 CURRENT_YEAR = datetime.today().date().year
 CODE_YEAR = str(CURRENT_YEAR - 2020)
-THIRD_THURSDAY = ['2025-05-15','2025-07-17','2025-09-16']
+THIRD_THURSDAY = ['2025-05-15','2025-07-17','2025-09-16', '2025-12-19']
 
 
 def write_csv(path_dir, contract, op, cp, qt):
@@ -49,7 +52,7 @@ def write_csv(path_dir, contract, op, cp, qt):
     date = path_dir.split('\\')[-3]
     name_file = contract + '_' + date + '_OI.csv'
     with open(path_dir + name_file, 'w', encoding='utf-8') as fo:
-        fo.writelines("LP    SP    LC    SC    SUMMA")
+        fo.writelines("LP;SP;LC;SC;SUMMA")
         fo.write('\n')
         fo.writelines(op)
         fo.write('\n')
@@ -72,17 +75,20 @@ def get_data_contract(driver):
             data = row.find_elements(By.TAG_NAME, 'td')
             for item in data:
                 if item.text != 'Открытые позиции':
-                    open_pos.append(item.text.replace(',', '') + ' ')
+                    open_pos.append(item.text)
         elif row.text[:9] == 'Изменение':
             data = row.find_elements(By.TAG_NAME, 'td')
             for item in data:
                 if item.text != 'Изменение':
-                    change_pos.append(item.text.replace(',', '') + ' ')
+                    change_pos.append(item.text)
         elif row.text[:14] == 'Количество лиц':
             data = row.find_elements(By.TAG_NAME, 'td')
             for item in data:
                 if item.text != 'Количество лиц':
-                    quantity.append(item.text.replace(',', '') + ' ')
+                    quantity.append(item.text)
+    open_pos = ';'.join(open_pos)
+    change_pos = ';'.join(change_pos)
+    quantity = ';'.join(quantity)
     return open_pos, change_pos, quantity
 
 
@@ -93,34 +99,59 @@ def get_selenium_page(html) -> int:
     options.add_argument('--headless')
     try:
         driver = webdriver.Firefox(options=options)
+        wait = WebDriverWait(driver, 5)
         driver.get(html)
     except Exception as e:
         options = COptions()
         options.add_argument('--headless')
         driver = webdriver.Chrome(options=options)
+        wait = WebDriverWait(driver, 5)
         print("Firefox dosn't work")
         print(e)
 
     if "Московская биржа" in driver.title:
-        driver.implicitly_wait(3)
-        ch = driver.find_element(By.CLASS_NAME, 'disclaimer__header').find_element(By.CLASS_NAME, 'disclaimer__buttons')
-        button = ch.find_element(By.TAG_NAME, 'a')
-        if button.text == 'Согласен':
-            button.click()
-        else:
-            print("Не нажата кнопка <Согласен>")
-        driver.implicitly_wait(3)
-        enter = driver.find_element(By.CLASS_NAME, 'header-old-user-profile')
-        if enter.text == "Войти":
-            enter.click()
-        else:
-            print("Не удалось сразу войти в личный кабинет")
-            enter2 = driver.find_element(By.CLASS_NAME, 'cabinet-text-container')
-            text_enter = enter2.find_element(By.CLASS_NAME, 'cabinet-text').text
-            if text_enter == 'Войти':
-                enter.click()
-            else:
-                print('Не найдена кнопка <<Войти>>')
+        print("Страница загружена")
+        driver.implicitly_wait(5)
+        try:
+            print("Способ 1: Ищу кнопку по классу '_desktopButton_m2mc9_738'...")
+            login_button = wait.until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "._desktopButton_m2mc9_738"))
+            )
+            print(f"✓ Кнопка найдена по CSS-классу")
+
+        except Exception as e:
+            print(f"Способ 1 не сработал: {e}")
+
+            # СПОСОБ 2: Поиск по тексту "Войти"
+            try:
+                print("Способ 2: Ищу кнопку по тексту 'Войти'...")
+                login_button = wait.until(
+                    EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Войти')]"))
+                )
+                print(f"✓ Кнопка найдена по тексту")
+
+            except Exception as e2:
+                print(f"Способ 2 не сработал: {e2}")
+
+                # СПОСОБ 3: Поиск всех кнопок с анализом
+                print("Способ 3: Анализирую все кнопки на странице...")
+                all_buttons = driver.find_elements(By.TAG_NAME, "button")
+                print(f"Найдено кнопок: {len(all_buttons)}")
+
+                for i, btn in enumerate(all_buttons):
+                    btn_text = btn.text.strip()
+                    btn_class = btn.get_attribute('class') or ''
+                    print(f"Кнопка {i + 1}: текст='{btn_text}', класс='{btn_class}'")
+
+                    if btn_text == "Войти" or "войти" in btn_text.lower():
+                        login_button = btn
+                        print(f"✓ Найдена подходящая кнопка: {btn_text}")
+                        break
+
+                if 'login_button' not in locals():
+                    raise Exception("Кнопка 'Войти' не найдена")
+        login_button.click()
+
         driver.implicitly_wait(3)
         if driver.title == 'Вход SSO':
             name = driver.find_element(By.NAME, 'credentials')
@@ -259,6 +290,8 @@ def get_selenium_page(html) -> int:
 def unusual_contract(date) -> list:
     """ Нестандартныe фьючерсы по 1 и 2 месяца """
     list_contracts = []
+    code_brent = ''
+    code_cocoa = ''
     month = date.month
     middle_work_day = check_weekday(15, month)
     last_day = calendar.monthrange(CURRENT_YEAR, month)[1]
@@ -266,19 +299,28 @@ def unusual_contract(date) -> list:
 
     date_str = datetime.strftime(date, '%Y-%m-%d')
     if date.day >= 1:
-        code_brent  = 'BR' + CODE_FUTURES.get(str(month + 1)) + CODE_YEAR
-    list_contracts.append(code_brent)
+        if month == 12:
+            code_brent  = 'BR' + CODE_FUTURES.get(str(1)) + CODE_YEAR
+        else:
+            code_brent = 'BR' + CODE_FUTURES.get(str(month + 1)) + CODE_YEAR
+        list_contracts.append(code_brent)
 
     if date.day >= middle_work_day:
-        code_sugar = 'SU' + CODE_FUTURES.get(str(month + 1)) + CODE_YEAR
+        if month == 12:
+            code_sugar = 'SU' + CODE_FUTURES.get(str(3)) + CODE_YEAR
+        else:
+            code_sugar = 'SU' + CODE_FUTURES.get(str(month + 1)) + CODE_YEAR
         list_contracts.append(code_sugar)
     else:
         code_sugar = 'SU' + CODE_FUTURES.get(str(month)) + CODE_YEAR
         list_contracts.append(code_sugar)
 
     if date.day <= last_work_day:
-        code_wheat = 'WH' + CODE_FUTURES.get(str(month)) + CODE_YEAR
-        list_contracts.append(code_wheat)
+        if month == 12:
+            code_wheat = 'WH' + CODE_FUTURES.get(str(1)) + CODE_YEAR
+        else:
+            code_wheat = 'WH' + CODE_FUTURES.get(str(month)) + CODE_YEAR
+    list_contracts.append(code_wheat)
 
     if date_str < THIRD_THURSDAY[0]:
         code_cocoa = 'CC' + 'K' + CODE_YEAR
@@ -287,7 +329,7 @@ def unusual_contract(date) -> list:
     elif date_str >= THIRD_THURSDAY[1] and date_str < THIRD_THURSDAY[2]:
         code_cocoa = 'CC' + 'U' + CODE_YEAR
     else:
-        date_str = 'CC' + 'X' + CODE_YEAR
+        code_cocoa = 'CC' + 'X' + CODE_YEAR
     list_contracts.append(code_cocoa)
     return list_contracts
 
