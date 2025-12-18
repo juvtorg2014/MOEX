@@ -20,7 +20,8 @@ from selenium.webdriver.firefox.options import Options as FOptions
 
 COUNT_REPEAT = 5
 MAIN_HTML = 'https://www.moex.com/ru/contract.aspx?code='
-TRIPLE_D = [{'Z4': '19-12-2024'}, {'H5': '20-03-2025'}, {'M5': '18-06-2025'}, {'U5': '17-09-2025'}, {'Z5': '18-12-2025'}]
+TRIPLE_D = [{'H5': '20-03-2025'}, {'M5': '18-06-2025'}, {'U5': '17-09-2025'}, {'Z5': '18-12-2025'},
+            {'H6': '20-03-2026'}, {'M6': '19-06-2026'}, {'U6': '18-09-2026'}, {'Z6': '18-12-2026'}]
 
 
 CODE_FUTURES = {'1':'F','2':'G','3':'H','4':'J','5':'K','6':'M',
@@ -356,6 +357,8 @@ def check_weekday(day, month):
 if __name__ == '__main__':
     start_time = datetime.now()
     MAIN_CONTRACT = get_main_contract()
+    if type(MAIN_CONTRACT) != str:
+        exit("Не получен главный контракт.\n Добавьте в TRIPLE_D")
     count = 0
     while count < COUNT_REPEAT:
         count += 1
