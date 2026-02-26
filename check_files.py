@@ -3,10 +3,11 @@ import os
 import sys
 from pathlib import Path
 
-list_stocks = ['AFKS','AFLT','ALRS','ASTR','BSPB','CBOM','CHMF','ENPG','FEES','FLOT',
-               'GAZP','GMKN','HEAD','HYDR','IRAO','LKOH','MAGN','MOEX','MTLR', 'MTSS',
-               'NLMK', 'NVTK','PIKK','PLZL','POSI','RENI','ROSN','RTKM','RUAL','SBER',
-               'SELG', 'SNGSP','SVCB', 'T','TATN','TRNFP','UGLD','UPRO','VKCO','VTBR','YDEX']
+list_stocks = ['AFKS','AFLT','ALRS','BSPB','CBOM','CHMF','ENPG','FLOT', 'GAZP','GMKN',
+               'HEAD','IRAO','LKOH','MAGN','MDMG', 'MOEX','MSNG', 'MTSS','NLMK','NVTK',
+               'PHOR', 'PIKK','PLZL','POSI','RENI','ROSN','RTKM','RUAL','SBER', 'SBERP',
+               'SNGS', 'SNGSP','SVCB', 'T','TATN', 'TATNP', 'TRNFP', 'UGLD', 'UPRO','VKCO',
+               'VTBR','X5', 'YDEX']
 
 
 def check_files(path_check):
@@ -15,7 +16,11 @@ def check_files(path_check):
 
     for txt_file in folder_root.rglob('*.png'):
         dir_name = txt_file.stem
-        begin_file = dir_name.split('_')[0]
+        if '_' not in dir_name:
+            file_name = dir_name.split('-')[1] + '.txt'
+            list_errors.append(txt_file)
+        else:
+            begin_file = dir_name.split('_')[0]
         if begin_file:
             if begin_file not in list_stocks:
                 file_name = dir_name.split('_')[1] + '.txt'
@@ -37,6 +42,6 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         check_files(sys.argv[1])
     else:
-        folder_path = os.getcwd()
+        folder_path = os.getcwd() + '\\2025-09-08'
         folder_root = Path(folder_path)
         check_files(folder_root)

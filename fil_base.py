@@ -56,8 +56,16 @@ def fill_database_from_csv(csv_folder, db_name, time_frame):
         try:
             # Читаем первую строку без заголовков
             first_row = pd.read_csv(csv_file, header=None, nrows=1).values.tolist()[0]
-            if first_row[0].lower() == 'date':
-                df = pd.read_csv(csv_file, skiprows=1, names=column_names)
+            if (first_row[0].lower() == 'date') or (first_row[0].lower() == '<date>'):
+                #df = pd.read_csv(csv_file, skiprows=1, names=column_names)
+                df = pd.read_csv(csv_file)
+                if df.columns.size == 7:
+                    if df.columns.tolist()[1] == '<TIME>':
+                        if (df['<TIME>'] == 0).all():
+                            df.drop('<TIME>', axis=1, inplace=True)
+
+
+
             else:
                 df = pd.read_csv(csv_file, header=False, names=column_names)
 
@@ -124,8 +132,8 @@ def fill_database_from_csv(csv_folder, db_name, time_frame):
 
 
 if __name__ == '__main__':
-    # csv_folder = input('Введите папку с файлами:\n')
-    csv_folder = 'micex'
+    #csv_folder = input('Введите папку с файлами:\n')
+    csv_folder = 'IMOEX'
     # db_name = input('Введите имя базы без разширения:\n')
     db_name = 'micex.db'
     fill_database_from_csv(os.getcwd() + '\\' + csv_folder,  db_name, PERIODS)
